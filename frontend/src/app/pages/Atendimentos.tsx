@@ -1,0 +1,138 @@
+import type { AtendimentosProps } from "../types/atendimentos";
+import { atendimentosData, motivoOptions, contatoOptions } from "../data/atendimentosData";
+
+// Importação dos componentes
+import AtendimentosHeader from "../components/Atendimentos/AtendimentosHeader";
+import AtendimentosFilters from "../components/Atendimentos/AtendimentosFilters";
+import AtendimentosTable from "../components/Atendimentos/AtendimentosTable";
+import ModalAtendimento from "../components/Atendimentos/Modals/ModalAtendimento";
+import ModalRelato from "../components/Atendimentos/Modals/ModalRelato";
+
+export default function Atendimentos({
+  initialStudent,
+  onClearInitialStudent,
+}: AtendimentosProps) {
+  const {
+    loading,
+    erro,
+    setErro,
+    salvando,
+    servidoresOptions,
+    search,
+    setSearch,
+    filterMotivo,
+    setFilterMotivo,
+    drawerOpen,
+    setDrawerOpen,
+    viewModal,
+    setViewModal,
+    fAlunoBusca,
+    setFAlunoBusca,
+    fAlunoSelecionado,
+    setFAlunoSelecionado,
+    fData,
+    setFData,
+    fMotivo,
+    setFMotivo,
+    fContato,
+    setFContato,
+    fRelato,
+    setFRelato,
+    fServidor,
+    setFServidor,
+    fSaved,
+    setFSaved,
+    showSugestoes,
+    setShowSugestoes,
+    sugestoesFiltradas,
+    filtered,
+    totalAtendimentos,
+    resetForm,
+    handleSave,
+  } = atendimentosData({ initialStudent, onClearInitialStudent });
+
+  return (
+    <div className="flex flex-col h-full bg-background overflow-hidden relative">
+      {/* Module Header Component */}
+      <AtendimentosHeader
+        onNovoAtendimento={() => {
+          setDrawerOpen(true);
+          setFSaved(false);
+        }}
+      />
+
+      {erro && !drawerOpen && (
+        <div className="shrink-0 px-6 py-2.5 bg-red-50 border-b border-red-200 flex items-center justify-between gap-4">
+          <p className="text-xs font-semibold text-red-700">{erro}</p>
+          <button onClick={() => setErro("")} className="text-xs text-red-700 hover:underline shrink-0">
+            Fechar
+          </button>
+        </div>
+      )}
+
+      {/* Search & Filter Bar Component */}
+      <AtendimentosFilters
+        search={search}
+        setSearch={setSearch}
+        filterMotivo={filterMotivo}
+        setFilterMotivo={setFilterMotivo}
+        motivoOptions={motivoOptions}
+        totalFiltered={filtered.length}
+      />
+
+      {/* Table Component */}
+      {loading ? (
+        <p className="text-sm text-muted-foreground text-center py-16">Carregando atendimentos...</p>
+      ) : (
+        <AtendimentosTable
+          filtered={filtered}
+          totalAtendimentos={totalAtendimentos}
+          onViewRelato={(atendimento) => setViewModal({ atendimento })}
+        />
+      )}
+
+      {/* ── Registrar Novo Atendimento — Centered Modal Component ── */}
+      {drawerOpen && (
+        <ModalAtendimento
+          onClose={() => {
+            setDrawerOpen(false);
+            resetForm();
+            setErro("");
+          }}
+          fSaved={fSaved}
+          fAlunoBusca={fAlunoBusca}
+          setFAlunoBusca={setFAlunoBusca}
+          fAlunoSelecionado={fAlunoSelecionado}
+          setFAlunoSelecionado={setFAlunoSelecionado}
+          showSugestoes={showSugestoes}
+          setShowSugestoes={setShowSugestoes}
+          sugestoesFiltradas={sugestoesFiltradas}
+          fData={fData}
+          setFData={setFData}
+          fServidor={fServidor}
+          setFServidor={setFServidor}
+          servidoresOptions={servidoresOptions}
+          fMotivo={fMotivo}
+          setFMotivo={setFMotivo}
+          motivoOptions={motivoOptions}
+          fContato={fContato}
+          setFContato={setFContato}
+          contatoOptions={contatoOptions}
+          fRelato={fRelato}
+          setFRelato={setFRelato}
+          handleSave={handleSave}
+          salvando={salvando}
+          erro={erro}
+        />
+      )}
+
+      {/* Modal: Ver Relato Completo */}
+      {viewModal.atendimento && (
+        <ModalRelato
+          atendimento={viewModal.atendimento}
+          onClose={() => setViewModal({ atendimento: null })}
+        />
+      )}
+    </div>
+  );
+}
