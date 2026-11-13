@@ -1,12 +1,11 @@
 const { Router } = require('express');
 
 const controller = require('../controllers/importacao.controller');
+const { validateImportacao } = require('../validators/importacao.validator');
 
 const router = Router();
 
-router.post('/notas', controller.notas);
-router.post('/nae', controller.nae);
-router.post('/frequencia', controller.frequencia);
-router.post('/turmas', controller.turmas);
+router.post('/conselho/previa', validateImportacao, controller.previa);
+router.post('/conselho', validateImportacao, controller.confirmar);
 
 module.exports = router;

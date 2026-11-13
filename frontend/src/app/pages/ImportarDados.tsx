@@ -14,6 +14,8 @@ import {
   ChevronRight,
   Database,
 } from "lucide-react";
+import { importarPlanilha } from "../services/importacaoService";
+import { lerPlanilha } from "../utils/leituraPlanilha";
 
 type SyncState = "idle" | "syncing" | "success" | "error";
 type ImportState = "idle" | "dragging" | "file_ready" | "importing" | "success" | "error";
@@ -70,14 +72,6 @@ export default function ImportarDados({ onClose }: Props) {
     setImportState("idle");
     const file = e.dataTransfer.files[0];
     if (!file) return;
-    const valid = [".xls", ".xlsx", ".csv"].some((ext) =>
-      file.name.toLowerCase().endsWith(ext)
-    );
-    if (!valid) {
-      setImportErrors(["Formato inválido. Aceitos: .xls, .xlsx, .csv"]);
-      setImportState("error");
-      return;
-    }
     setDroppedFile(file);
     setImportErrors([]);
     setImportState("file_ready");
@@ -91,22 +85,18 @@ export default function ImportarDados({ onClose }: Props) {
     setImportState("file_ready");
   }, []);
 
-  const runImport = useCallback(() => {
+  const runImport = useCallback(async () => {
     if (!droppedFile) return;
     setImportState("importing");
     setImportProgress(0);
-    let p = 0;
-    const iv = setInterval(() => {
-      p += Math.floor(Math.random() * 18) + 8;
-      if (p >= 100) {
-        p = 100;
-        clearInterval(iv);
-        setImportProgress(100);
-        setImportState("success");
-      } else {
-        setImportProgress(p);
-      }
-    }, 400);
+    try {
+      await importarPlanilha(await lerPlanilha(droppedFile));
+      setImportProgress(100);
+      setImportState("success");
+    } catch (err) {
+      setImportErrors([err instanceof Error ? err.message : "Não foi possível importar a planilha."]);
+      setImportState("error");
+    }
   }, [droppedFile]);
 
   const resetImport = () => {
@@ -384,7 +374,7 @@ export default function ImportarDados({ onClose }: Props) {
                       <label className="block text-xs font-bold text-foreground flex items-center gap-1.5 mx-[0px] mt-[0px] mb-[5px]">
                         <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 text-white" style={{ background: "var(--primary)" }}>3</span>
                         Selecione o Arquivo da Planilha:
-                        <span className="font-normal text-muted-foreground ml-1">.xls · .xlsx · .csv</span>
+                        <span className="font-normal text-muted-foreground ml-1">.csv</span>
                       </label>
                     </>
                   );
@@ -417,7 +407,7 @@ export default function ImportarDados({ onClose }: Props) {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".xls,.xlsx,.csv"
+                    accept=".csv"
                     className="hidden"
                     onChange={handleFileInput}
                   />
@@ -437,7 +427,7 @@ export default function ImportarDados({ onClose }: Props) {
                         <p className="text-xs text-muted-foreground mt-1">
                           ou <span className="underline" style={{ color: "var(--primary)" }}>clique para procurar no computador</span>
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">.xls · .xlsx · .csv</p>
+                        <p className="text-xs text-muted-foreground mt-1">.csv</p>
                       </div>
                     </>
                   ) : importState === "file_ready" ? (

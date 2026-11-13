@@ -1,20 +1,37 @@
 const importacaoModel = require('../models/importacao.model');
 const asyncHandler = require('../utils/asyncHandler');
 const { registrarLog } = require('../utils/auditoria');
+const { imprimirRelatorio } = require('../utils/relatorioImportacao');
 
-// O corpo vai para o model como chegou: nenhum formato é assumido aqui.
-// O log guarda quem importou e o tipo da planilha (registro_id), não o conteúdo.
-function importar(funcao, modelo, descricao) {
-  return asyncHandler(async (req, res) => {
-    await funcao(req.body);
-    await registrarLog(req, { acao: 'IMPORTAR', tabela: 'importacoes', registroId: modelo });
-    res.json({ success: true, message: `Planilha de ${descricao} recebida` });
-  });
+// Erros e conflitos ficam só no terminal do backend: as ocorrências não vão na resposta.
+// As recusas são tratadas em middlewares/recusaImportacao.js.
+async function importar(req, simular) {
+  const relatorio = await importacaoModel.importarConselho(req.body, { simular });
+  imprimirRelatorio(relatorio);
+  return { ...relatorio, ocorrencias: undefined };
 }
 
+// Só relata o que a importação faria: nada é gravado.
+const previa = asyncHandler(async (req, res) => {
+  const relatorio = await importar(req, true);
+  res.json({ success: true, data: relatorio });
+});
+
+// O log guarda quem importou e os totais, não o conteúdo da planilha (notas de alunos).
+const confirmar = asyncHandler(async (req, res) => {
+  const relatorio = await importar(req, false);
+  const { arquivo, contexto, linhas, resumo } = relatorio;
+
+  await registrarLog(req, {
+    acao: 'IMPORTAR',
+    tabela: 'importacoes',
+    registroId: 'conselho',
+    novos: { arquivo, contexto, linhas, resumo }
+  });
+  res.json({ success: true, data: relatorio });
+});
+
 module.exports = {
-  notas: importar(importacaoModel.importarNotas, 'notas', 'notas parciais'),
-  nae: importar(importacaoModel.importarNae, 'nae', 'atendimentos (NAE)'),
-  frequencia: importar(importacaoModel.importarFrequencia, 'frequencia', 'frequência'),
-  turmas: importar(importacaoModel.importarTurmas, 'turmas', 'turmas e matrículas')
+  previa,
+  confirmar
 };

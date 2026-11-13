@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 
 const routes = require('./routes');
+const recusaImportacao = require('./middlewares/recusaImportacao');
 const notFound = require('./middlewares/notFound');
 const errorHandler = require('./middlewares/errorHandler');
 
@@ -16,6 +17,8 @@ if (trustedProxies > 0) {
 }
 
 app.use(cors());
+// A planilha importada chega como JSON e passa do limite padrão de 100kb (a Vercel aceita até 4,5mb).
+app.use('/api/importacoes', express.json({ limit: '4mb' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -38,6 +41,7 @@ app.get('/', (req, res) => {
 
 app.use('/api', routes);
 
+app.use('/api/importacoes', recusaImportacao);
 app.use(notFound);
 app.use(errorHandler);
 
